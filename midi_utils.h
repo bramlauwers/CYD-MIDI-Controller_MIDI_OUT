@@ -3,6 +3,9 @@
 
 #include "common_definitions.h"
 
+// Extern flag controlled from main .ino to enable hardware MIDI DIN output (Serial2 TX)
+extern bool midiDinEnabled;
+
 // Scale definitions
 Scale scales[] = {
   {"Major", {0, 2, 4, 5, 7, 9, 11, 0}, 7},
@@ -16,13 +19,22 @@ const int NUM_SCALES = 6;
 
 // MIDI utility functions
 void sendMIDI(byte cmd, byte note, byte vel) {
-  if (!deviceConnected) return;
-  
-  midiPacket[2] = cmd;
-  midiPacket[3] = note;
-  midiPacket[4] = vel;
-  pCharacteristic->setValue(midiPacket, 5);
-  pCharacteristic->notify();
+  // Send over BLE (existing behavior)
+  if (deviceConnected) {
+    midiPacket[2] = cmd;
+    midiPacket[3] = note;
+    midiPacket[4] = vel;
+    pCharacteristic->setValue(midiPacket, 5);
+    pCharacteristic->notify();
+  }
+
+  // Additionally send to hardware MIDI DIN (Serial2) if enabled
+  // Standard MIDI message: status, data1, data2
+  if (midiDinEnabled) {
+    Serial2.write(cmd);
+    Serial2.write(note);
+    Serial2.write(vel);
+  }
 }
 
 int getNoteInScale(int scaleIndex, int degree, int octave) {
