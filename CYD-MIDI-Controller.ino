@@ -25,6 +25,7 @@
 #include "ui_elements.h"
 #include "midi_utils.h"
 
+
 // Hardware setup
 #define XPT2046_IRQ 36
 #define XPT2046_MOSI 32
@@ -42,10 +43,10 @@ BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
 uint8_t midiPacket[] = {0x80, 0x80, 0x00, 0x60, 0x7F};
 
-// Hardware MIDI DIN flag (controls Serial2 TX on GPIO22)
-bool midiDinEnabled = false;
+// MIDI-OUT (DIN) on UART2
+HardwareSerial MIDISerial(2); // UART2
 
- // Touch state
+// Touch state
 TouchState touch;
 
 // App state
@@ -120,23 +121,11 @@ void setup() {
   tft.setRotation(1);
   pinMode(21, OUTPUT);
   digitalWrite(21, HIGH);
-  
-  // --- Hardware MIDI OUT (DIN) on pin 22 ---
-  // Enable this to output MIDI over a physical DIN/TTL line on GPIO22.
-  // WARNING: Do NOT wire GPIO22 directly to a 5V DIN MIDI jack. Use the MIDI OUT interface
-  // circuit (opto-isolator or standard transistor/resistor interface) or a breakout.
-  // Turn midiDinEnabled to true to enable hardware output.
-  midiDinEnabled = true; // change to false to disable hardware DIN by default
-  const int MIDI_TX_PIN = 22;
-  if (midiDinEnabled) {
-    // Serial2.begin(baud, config, RXpin, TXpin)
-    // We don't use RX here so set RX pin to -1.
-    Serial2.begin(31250, SERIAL_8N1, -1, MIDI_TX_PIN);
-    pinMode(MIDI_TX_PIN, OUTPUT);
-    Serial.println("Hardware MIDI (DIN) enabled on TX pin 22");
-  }
-  // --- end MIDI init ---
-  
+
+  // --- DIN MIDI OUT init on UART2 ---
+  // Use RX=16, TX=17 (or change to your actual TX pin and comment)
+  MIDISerial.begin(31250, SERIAL_8N1, 16, 17); // RX=16, TX=17
+
   // BLE MIDI Setup
   Serial.println("Initializing BLE MIDI...");
   BLEDevice::init("CYD MIDI");
